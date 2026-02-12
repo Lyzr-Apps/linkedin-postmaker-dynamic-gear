@@ -1,0 +1,28 @@
+{
+  "agent_name": "LinkedIn Post Generator Agent",
+  "agent_id": "698da59525b27d3bfba133d4",
+  "description": "Crafts engaging LinkedIn posts optimized for professional audiences, incorporating storytelling hooks, clear value propositions, strategic hashtags, and platform-appropriate formatting",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "result": {
+      "post_content": "string",
+      "hashtags": [
+        "string"
+      ],
+      "post_style": "string",
+      "character_count": "number"
+    }
+  },
+  "example_response": {
+    "result": {
+      "post_content": "The complete LinkedIn post with proper line breaks",
+      "hashtags": [
+        "sample string"
+      ],
+      "post_style": "The style used (Story/Tips/Question/Announcement/General)",
+      "character_count": 0
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "agents": [
+    {
+      "agent_id": "698da59525b27d3bfba133d4",
+      "name": "LinkedIn Post Generator Agent",
+      "description": "Crafts engaging LinkedIn posts optimized for professional audiences, incorporating storytelling hooks, clear value propositions, strategic hashtags, and platform-appropriate formatting",
+      "agent_type": "json",
+      "accessor": "result",
+      "response_schema_file": "response_schemas/linkedin_post_generator_agent_response.json"
+    }
+  ],
+  "knowledge_bases": [],
+  "schedules": []
+}
