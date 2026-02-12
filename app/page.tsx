@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { callAIAgent } from '@/lib/aiAgent'
 import { Loader2 } from 'lucide-react'
-import { FiCopy, FiRefreshCw } from 'react-icons/fi'
+import { FiCopy, FiRefreshCw, FiDownload } from 'react-icons/fi'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent } from '@/components/ui/card'
@@ -32,12 +32,21 @@ interface GeneratedPost {
   hashtags: string[]
   post_style: string
   character_count: number
+  image_prompt?: string
 }
 
 interface AgentResponse {
   success: boolean
   response?: {
     result: GeneratedPost
+  }
+  module_outputs?: {
+    artifact_files?: Array<{
+      url?: string
+      file_url?: string
+      name?: string
+      type?: string
+    }>
   }
   error?: string
 }
@@ -49,7 +58,9 @@ export default function Home() {
   const [topic, setTopic] = useState('')
   const [selectedStyle, setSelectedStyle] = useState('General')
   const [generatedPost, setGeneratedPost] = useState<GeneratedPost | null>(null)
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [imageLoading, setImageLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [copySuccess, setCopySuccess] = useState(false)
 
@@ -67,6 +78,7 @@ export default function Home() {
     setIsLoading(true)
     setError(null)
     setGeneratedPost(null)
+    setGeneratedImage(null)
 
     try {
       const result = await callAIAgent(
@@ -76,6 +88,16 @@ export default function Home() {
 
       if (result.success && result.response?.result) {
         setGeneratedPost(result.response.result)
+
+        // Extract image from top-level module_outputs
+        const imageUrl = result.module_outputs?.artifact_files?.[0]?.url ??
+                        result.module_outputs?.artifact_files?.[0]?.file_url ??
+                        null
+
+        if (imageUrl) {
+          setGeneratedImage(imageUrl)
+          setImageLoading(true)
+        }
       } else {
         setError(result.error || 'Failed to generate post. Please try again.')
       }
@@ -102,6 +124,17 @@ export default function Home() {
     }
   }
 
+  const handleDownloadImage = () => {
+    if (!generatedImage) return
+
+    const link = document.createElement('a')
+    link.href = generatedImage
+    link.download = `linkedin-post-image-${Date.now()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   const handleRegenerate = () => {
     handleGenerate()
   }
@@ -113,16 +146,25 @@ export default function Home() {
     }
   }
 
+  const handleImageLoad = () => {
+    setImageLoading(false)
+  }
+
+  const handleImageError = () => {
+    setImageLoading(false)
+    setGeneratedImage(null)
+  }
+
   return (
     <div style={THEME_VARS} className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-6 py-12">
+      <div className="max-w-6xl mx-auto px-6 py-12">
         {/* Header */}
         <header className="mb-12 text-center">
           <h1 className="font-serif text-4xl font-bold tracking-tight text-foreground mb-3">
             LinkedIn Post Generator
           </h1>
           <p className="text-muted-foreground leading-relaxed">
-            Craft engaging posts optimized for professional audiences
+            Craft engaging posts with professional images optimized for professional audiences
           </p>
         </header>
 
@@ -207,72 +249,113 @@ export default function Home() {
         {generatedPost ? (
           <Card className="border border-border rounded-none shadow-none">
             <CardContent className="p-8">
-              <div className="space-y-6">
-                {/* Post Content */}
-                <div>
-                  <h2 className="font-medium text-foreground mb-4">
-                    Generated Post
-                  </h2>
-                  <div className="p-6 bg-secondary/50 border border-border rounded-none">
-                    <p className="whitespace-pre-wrap leading-relaxed tracking-tight text-foreground">
-                      {generatedPost.post_content}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Hashtags */}
-                {Array.isArray(generatedPost.hashtags) && generatedPost.hashtags.length > 0 && (
-                  <div>
-                    <h3 className="font-medium text-foreground mb-3 text-sm">
-                      Hashtags
-                    </h3>
-                    <div className="flex flex-wrap gap-2">
-                      {generatedPost.hashtags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-none border border-border tracking-tight"
-                        >
-                          {tag.startsWith('#') ? tag : `#${tag}`}
-                        </span>
-                      ))}
+              {/* Two-column grid when image exists */}
+              <div className={`${generatedImage ? 'grid grid-cols-1 md:grid-cols-2 gap-8' : ''}`}>
+                {/* Image Column - Left Side */}
+                {generatedImage && (
+                  <div className="space-y-4">
+                    <h2 className="font-medium text-foreground">
+                      Generated Image
+                    </h2>
+                    <div className="relative border border-border rounded-none overflow-hidden bg-secondary/50">
+                      {imageLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-secondary/80">
+                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      )}
+                      <img
+                        src={generatedImage}
+                        alt={generatedPost.image_prompt || 'Generated LinkedIn post image'}
+                        className="w-full h-auto object-contain"
+                        onLoad={handleImageLoad}
+                        onError={handleImageError}
+                      />
                     </div>
+                    {generatedPost.image_prompt && (
+                      <div className="text-xs text-muted-foreground italic px-2 leading-relaxed">
+                        {generatedPost.image_prompt}
+                      </div>
+                    )}
+                    <Button
+                      onClick={handleDownloadImage}
+                      variant="outline"
+                      className="w-full flex items-center justify-center gap-2 rounded-none border-border hover:border-foreground"
+                      aria-label="Download image"
+                    >
+                      <FiDownload className="h-4 w-4" />
+                      Download Image
+                    </Button>
                   </div>
                 )}
 
-                {/* Character Count */}
-                <div className="text-sm text-muted-foreground">
-                  Character count: {generatedPost.character_count ?? 0}
-                </div>
+                {/* Content Column - Right Side (or full width if no image) */}
+                <div className="space-y-6">
+                  {/* Post Content */}
+                  <div>
+                    <h2 className="font-medium text-foreground mb-4">
+                      Generated Post
+                    </h2>
+                    <div className="p-6 bg-secondary/50 border border-border rounded-none">
+                      <p className="whitespace-pre-wrap leading-relaxed tracking-tight text-foreground">
+                        {generatedPost.post_content}
+                      </p>
+                    </div>
+                  </div>
 
-                {/* Action Row */}
-                <div className="flex items-center gap-4 pt-4 border-t border-border">
-                  <Button
-                    onClick={handleCopy}
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-none border-border hover:border-foreground"
-                    aria-label="Copy post to clipboard"
-                  >
-                    <FiCopy className="h-4 w-4" />
-                    Copy Post
-                  </Button>
-
-                  <Button
-                    onClick={handleRegenerate}
-                    variant="outline"
-                    className="flex items-center gap-2 rounded-none border-border hover:border-foreground"
-                    disabled={isLoading}
-                    aria-label="Regenerate post"
-                  >
-                    <FiRefreshCw className="h-4 w-4" />
-                    Regenerate
-                  </Button>
-
-                  {/* Copy Success Message */}
-                  {copySuccess && (
-                    <span className="text-sm text-accent font-medium ml-2">
-                      Copied to clipboard!
-                    </span>
+                  {/* Hashtags */}
+                  {Array.isArray(generatedPost.hashtags) && generatedPost.hashtags.length > 0 && (
+                    <div>
+                      <h3 className="font-medium text-foreground mb-3 text-sm">
+                        Hashtags
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {generatedPost.hashtags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="px-3 py-1 bg-muted text-muted-foreground text-sm rounded-none border border-border tracking-tight"
+                          >
+                            {tag.startsWith('#') ? tag : `#${tag}`}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
+
+                  {/* Character Count */}
+                  <div className="text-sm text-muted-foreground">
+                    Character count: {generatedPost.character_count ?? 0}
+                  </div>
+
+                  {/* Action Row */}
+                  <div className="flex flex-wrap items-center gap-4 pt-4 border-t border-border">
+                    <Button
+                      onClick={handleCopy}
+                      variant="outline"
+                      className="flex items-center gap-2 rounded-none border-border hover:border-foreground"
+                      aria-label="Copy post to clipboard"
+                    >
+                      <FiCopy className="h-4 w-4" />
+                      Copy Post
+                    </Button>
+
+                    <Button
+                      onClick={handleRegenerate}
+                      variant="outline"
+                      className="flex items-center gap-2 rounded-none border-border hover:border-foreground"
+                      disabled={isLoading}
+                      aria-label="Regenerate post"
+                    >
+                      <FiRefreshCw className="h-4 w-4" />
+                      Regenerate
+                    </Button>
+
+                    {/* Copy Success Message */}
+                    {copySuccess && (
+                      <span className="text-sm text-accent font-medium ml-2">
+                        Copied to clipboard!
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>

@@ -1,10 +1,11 @@
 {
   "agent_name": "LinkedIn Post Generator Agent",
   "agent_id": "698da59525b27d3bfba133d4",
-  "description": "Crafts engaging LinkedIn posts optimized for professional audiences, incorporating storytelling hooks, clear value propositions, strategic hashtags, and platform-appropriate formatting",
+  "description": "Crafts engaging LinkedIn posts optimized for professional audiences with accompanying professional images, incorporating storytelling hooks, clear value propositions, strategic hashtags, and platform-appropriate formatting",
   "agent_type": "json",
   "accessor": "result",
   "auto_generated": true,
+  "has_image_output": true,
   "response_schema": {
     "result": {
       "post_content": "string",
@@ -12,7 +13,8 @@
         "string"
       ],
       "post_style": "string",
-      "character_count": "number"
+      "character_count": "number",
+      "image_prompt": "string"
     }
   },
   "example_response": {
@@ -22,7 +24,9 @@
         "sample string"
       ],
       "post_style": "The style used (Story/Tips/Question/Announcement/General)",
-      "character_count": 0
+      "character_count": 0,
+      "image_prompt": "Detailed description of the generated professional image"
     }
-  }
+  },
+  "image_output_note": "Generated images will be available in module_outputs.artifact_files at the top level of the agent response"
 }
